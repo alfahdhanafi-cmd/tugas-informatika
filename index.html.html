@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Titrasi Asam-Basa</title>
+<style>
+  :root {
+    --teal: #1D9E75; --teal-light: #E1F5EE; --teal-mid: #5DCAA5; --teal-dark: #0F6E56;
+    --amber: #BA7517; --amber-light: #FAEEDA; --amber-mid: #EF9F27;
+    --red: #E24B4A; --red-light: #FCEBEB;
+    --blue: #185FA5; --blue-light: #E6F1FB;
+    --gray: #888780; --gray-light: #F1EFE8; --gray-dark: #2C2C2A;
+    --text: #1a1a18; --text-sec: #5F5E5A; --text-hint: #888780;
+    --bg: #f7f6f2; --bg-card: #ffffff; --border: rgba(0,0,0,0.10);
+    --radius: 10px; --radius-lg: 14px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── LAYOUT ── */
+  .game-shell { max-width: 860px; margin: 0 auto; padding: 16px; }
+
+  /* ── HEADER ── */
+  .header { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 18px; margin-bottom: 16px; }
+  .header-title { display: flex; align-items: center; gap: 10px; }
+  .header-title span { font-size: 20px; }
+  .header-title h1 { font-size: 16px; font-weight: 600; color: var(--text); }
+  .header-stats { display: flex; gap: 16px; align-items: center; }
+  .stat-pill { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; }
+  .stat-pill .icon { font-size: 15px; }
+  .hearts { color: var(--red); font-size: 14px; letter-spacing: 1px; }
+  .score-val { color: var(--amber); font-weight: 600; }
+  .level-val { color: var(--teal); font-weight: 600; }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { margin-bottom: 14px; }
+  .progress-steps { display: flex; gap: 4px; margin-bottom: 6px; }
+  .prog-step { flex: 1; height: 4px; border-radius: 2px; background: #ddd; transition: background 0.3s; }
+  .prog-step.done { background: var(--teal); }
+  .prog-step.active { background: var(--amber-mid); }
+  .step-labels { display: flex; }
+  .step-label { flex: 1; font-size: 10px; color: var(--text-hint); text-align: center; }
+  .step-label.active { color: var(--amber); font-weight: 600; }
+  .step-label.done { color: var(--teal); }
+
+  /* ── SCREEN PANELS ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── CARD ── */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+
+  /* ── QUESTION BOX ── */
+  .question-box { background: linear-gradient(135deg, var(--teal-light), #f0fbf7); border: 1px solid var(--teal-mid); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 14px; }
+  .question-label { font-size: 11px; font-weight: 600; color: var(--teal-dark); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .question-text { font-size: 15px; color: var(--text); line-height: 1.5; }
+  .question-meta { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .q-badge { background: white; border: 1px solid var(--teal-mid); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--teal-dark); font-weight: 500; }
+
+  /* ── OPTION GRID ── */
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .option-btn { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; text-align: left; font-size: 14px; color: var(--text); transition: all 0.15s; display: flex; align-items: center; gap: 10px; }
+  .option-btn:hover { border-color: var(--teal-mid); background: var(--teal-light); }
+  .option-btn.correct { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); }
+  .option-btn.wrong { border-color: var(--red); background: var(--red-light); color: var(--red); }
+  .option-btn.disabled { pointer-events: none; opacity: 0.5; }
+  .option-icon { font-size: 20px; flex-shrink: 0; }
+
+  /* ── FEEDBACK ── */
+  .feedback { border-radius: var(--radius); padding: 12px 14px; font-size: 13px; margin-top: 10px; display: none; }
+  .feedback.correct { background: var(--teal-light); border: 1px solid var(--teal-mid); color: var(--teal-dark); }
+  .feedback.wrong { background: var(--red-light); border: 1px solid #F09595; color: #A32D2D; }
+  .feedback.show { display: flex; gap: 8px; align-items: flex-start; }
+
+  /* ── TITRATION SECTION ── */
+  .titration-layout { display: grid; grid-template-columns: 1fr 260px; gap: 14px; }
+  @media (max-width: 640px) { .titration-layout { grid-template-columns: 1fr; } .options-grid { grid-template-columns: 1fr; } }
+
+  .burette-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .burette-container { display: flex; gap: 32px; align-items: flex-start; justify-content: center; padding: 10px; }
+  .burette-side { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .burette-label { font-size: 11px; color: var(--text-sec); font-weight: 500; }
+  .burette { width: 44px; height: 200px; border: 2px solid #888; border-radius: 4px 4px 2px 2px; background: #f0f8ff; position: relative; overflow: hidden; }
+  .burette-fill { position: absolute; bottom: 0; width: 100%; background: #a8d8ea; transition: height 0.3s; }
+  .burette-scale { position: absolute; right: -24px; top: 0; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+  .burette-scale span { font-size: 9px; color: var(--text-hint); }
+  .burette-tip { width: 8px; height: 24px; background: #888; border-radius: 0 0 4px 4px; margin-top: -2px; }
+  .erlenmeyer { width: 90px; height: 110px; position: relative; margin-top: 20px; }
+  .erlen-svg { width: 100%; height: 100%; }
+
+  .ph-display { background: #1a1a2e; border-radius: var(--radius); padding: 12px 16px; text-align: center; color: white; }
+  .ph-value { font-size: 32px; font-weight: 700; font-family: monospace; }
+  .ph-label { font-size: 11px; color: #888; margin-top: 2px; }
+
+  .titration-controls { display: flex; flex-direction: column; gap: 8px; }
+  .add-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .add-btn { background: white; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; color: var(--text); transition: all 0.15s; font-weight: 500; }
+  .add-btn:hover { border-color: var(--teal-mid); background: var(--teal-light); color: var(--teal-dark); }
+  .add-btn.primary { background: var(--teal); color: white; border-color: var(--teal); }
+  .add-btn.primary:hover { background: var(--teal-dark); }
+
+  .custom-add { display: flex; gap: 6px; align-items: center; }
+  .custom-add input { width: 70px; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+  .custom-add input:focus { outline: none; border-color: var(--teal-mid); }
+
+  .titration-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .info-item { background: var(--gray-light); border-radius: 8px; padding: 8px; }
+  .info-item .i-label { font-size: 10px; color: var(--text-hint); text-transform: uppercase; }
+  .info-item .i-val { font-size: 15px; font-weight: 600; color: var(--text); margin-top: 2px; }
+
+  .mark-btn { width: 100%; background: var(--amber-mid); border: none; border-radius: var(--radius); padding: 10px; font-size: 14px; font-weight: 600; color: white; cursor: pointer; transition: all 0.15s; }
+  .mark-btn:hover { background: var(--amber); }
+  .mark-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  /* ── pH CURVE ── */
+  .curve-canvas { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+
+  /* ── LOG ── */
+  .log-list { max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+  .log-entry { font-size: 11px; color: var(--text-sec); padding: 3px 6px; border-radius: 4px; background: var(--gray-light); display: flex; justify-content: space-between; }
+
+  /* ── RESULT SCREEN ── */
+  .result-header { text-align: center; padding: 20px 0 10px; }
+  .result-icon { font-size: 48px; margin-bottom: 8px; }
+  .result-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .result-sub { font-size: 14px; color: var(--text-sec); }
+  .result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0; }
+  .result-stat { background: var(--gray-light); border-radius: var(--radius); padding: 14px; text-align: center; }
+  .result-stat .rs-val { font-size: 22px; font-weight: 700; }
+  .result-stat .rs-label { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+  .result-stat.gold .rs-val { color: var(--amber); }
+  .result-stat.teal .rs-val { color: var(--teal); }
+  .result-stat.red .rs-val { color: var(--red); }
+
+  .score-breakdown { margin: 12px 0; }
+  .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 4px; }
+  .breakdown-row.base { background: var(--blue-light); color: var(--blue); }
+  .breakdown-row.bonus { background: var(--teal-light); color: var(--teal-dark); }
+  .breakdown-row.penalty { background: var(--red-light); color: #A32D2D; }
+  .breakdown-row.total { background: var(--amber-light); color: var(--amber); font-weight: 700; font-size: 15px; }
+  .breakdown-row .bd-label { font-weight: 500; }
+  .breakdown-row .bd-pts { font-weight: 700; }
+
+  /* ── NAVIGATION BTNS ── */
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  .btn { padding: 10px 22px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--teal); color: white; }
+  .btn-primary:hover { background: var(--teal-dark); }
+  .btn-secondary { background: white; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--teal-mid); }
+  .btn-danger { background: var(--red-light); color: var(--red); border: 1px solid #F09595; }
+  .btn-danger:hover { background: #F7C1C1; }
+
+  /* ── ENDING SCREEN ── */
+  #screen-ending { display: none; }
+  #screen-ending.active { display: block; }
+  .ending-hero { text-align: center; padding: 28px 0 16px; }
+  .trophy-ring { width: 100px; height: 100px; border-radius: 50%; background: var(--teal-light); border: 3px solid var(--teal); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 48px; position: relative; }
+  .trophy-ring::before { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 2px solid var(--teal-mid); opacity: 0.4; animation: ring-pulse 2s ease-in-out infinite; }
+  @keyframes ring-pulse { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.08); opacity: 0.1; } }
+  .ending-title { font-size: 26px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .ending-sub { font-size: 15px; color: var(--text-sec); line-height: 1.5; }
+
+  .ending-score-big { font-size: 56px; font-weight: 800; color: var(--amber); line-height: 1; margin: 10px 0 4px; }
+  .ending-score-label { font-size: 13px; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .rank-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--teal-light); border: 1.5px solid var(--teal-mid); border-radius: 24px; padding: 7px 18px; font-size: 14px; font-weight: 600; color: var(--teal-dark); margin: 12px 0; }
+
+  .ending-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+  @media (max-width: 600px) { .ending-grid { grid-template-columns: repeat(2, 1fr); } }
+  .end-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
+  .end-stat .es-val { font-size: 20px; font-weight: 700; color: var(--text); }
+  .end-stat .es-label { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+
+  .level-recap { margin: 16px 0; }
+  .recap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .recap-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border); font-weight: 600; color: var(--text-sec); font-size: 11px; text-transform: uppercase; }
+  .recap-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .recap-table tr:last-child td { border-bottom: none; }
+  .recap-table tr:hover td { background: var(--gray-light); }
+  .stars-cell { color: var(--amber); letter-spacing: 1px; }
+  .pts-cell { font-weight: 600; color: var(--teal-dark); }
+
+  .confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+  /* ── INDICATOR PILL ── */
+  .indicator-pill { display: inline-flex; align-items: center; gap: 6px; background: white; border: 1.5px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .indicator-pill:hover { border-color: var(--teal-mid); }
+  .indicator-pill.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); }
+  .ind-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); }
+
+  /* ── MISC ── */
+  .empty-msg { text-align: center; padding: 40px; color: var(--text-hint); font-size: 14px; }
+  .alert { border-radius: var(--radius); padding: 10px 14px; font-size: 13px; margin-bottom: 10px; }
+  .alert-info { background: var(--blue-light); border: 1px solid #B5D4F4; color: var(--blue); }
+  .alert-warn { background: var(--amber-light); border: 1px solid #FAC775; color: var(--amber); }
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+</style>
+</head>
+<body>
+<div class="game-shell">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-title">
+      <span>⚗️</span>
+      <h1>Lab Titrasi Asam-Basa</h1>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill"><span class="score-val" id="hdr-score">0</span><span style="color:var(--text-hint);font-size:12px">poin</span></div>
+      <div class="stat-pill"><span class="level-val" id="hdr-level">1</span><span style="color:var(--text-hint);font-size:12px">/10</span></div>
+      <div class="hearts" id="hdr-hearts">♥♥♥</div>
+    </div>
+  </div>
+
+  <!-- STEP PROGRESS -->
+  <div class="progress-wrap" id="step-progress">
+    <div class="progress-steps" id="prog-bars">
+      <div class="prog-step active" id="ps-0"></div>
+      <div class="prog-step" id="ps-1"></div>
+      <div class="prog-step" id="ps-2"></div>
+      <div class="prog-step" id="ps-3"></div>
+      <div class="prog-step" id="ps-4"></div>
+    </div>
+    <div class="step-labels">
+      <div class="step-label active" id="sl-0">Larutan</div>
+      <div class="step-label" id="sl-1">Titran</div>
+      <div class="step-label" id="sl-2">Indikator</div>
+      <div class="step-label" id="sl-3">Titrasi</div>
+      <div class="step-label" id="sl-4">Hasil</div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: ANALYTE ============ -->
+  <div class="screen active" id="screen-analyte">
+    <div class="question-box" id="q-box-analyte">
+      <div class="question-label">Soal <span id="q-num">1</span> dari 10</div>
+      <div class="question-text" id="q-text">Memuat...</div>
+      <div class="question-meta" id="q-meta"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🧪 Pilih larutan analit (dalam erlenmeyer)</div>
+      <div class="options-grid" id="analyte-options"></div>
+      <div class="feedback" id="feedback-analyte"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-next-analyte" disabled onclick="goToStep(1)">Lanjut: Isi Buret →</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: TITRANT ============ -->
+  <div class="screen" id="screen-titrant">
+    <div class="question-box" id="q-box-titrant">
+      <div class="question-label">Soal <span id="q-num2">1</span> dari 10</div>
+      <div class="question-text" id="q-text2">Memuat...</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔬 Pilih titran untuk buret</div>
+      <p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;">Titran harus dapat bereaksi dengan analit yang dipilih.</p>
+      <div class="options-grid" id="titrant-options"></div>
+      <div class="feedback" id="feedback-titrant"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(0)">← Kembali</button>
+      <button class="btn btn-primary" id="btn-next-titrant" disabled onclick="goToStep(2)">Lanjut: Pilih Indikator →</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: INDICATOR ============ -->
+  <div class="screen" id="screen-indicator">
+    <div class="card">
+      <div class="card-title">💧 Pilih Indikator</div>
+      <p style="font-size:13px;color:var(--text-sec);margin-bottom:14px;">Pilih indikator yang tepat berdasarkan pH titik ekuivalen reaksi ini.</p>
+      <div id="indicator-options" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      <div class="feedback" id="feedback-indicator" style="margin-top:12px;"></div>
+      <div id="indicator-info" style="display:none;margin-top:12px;" class="alert alert-info"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(1)">← Kembali</button>
+      <button class="btn btn-primary" id="btn-next-indicator" disabled onclick="goToStep(3)">Mulai Titrasi →</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: TITRATION ============ -->
+  <div class="screen" id="screen-titration">
+    <div class="titration-layout">
+      <!-- LEFT: apparatus + controls -->
+      <div>
+        <div class="card">
+          <div class="card-title">⚗️ Buret & Erlenmeyer</div>
+          <div class="burette-container">
+            <!-- Buret -->
+            <div class="burette-side">
+              <div class="burette-label" id="titrant-name-lbl">NaOH</div>
+              <div style="position:relative;">
+                <div class="burette" id="burette-vis">
+                  <div class="burette-fill" id="burette-fill" style="height:100%;background:#c8e6c9;"></div>
+                </div>
+                <div class="burette-scale">
+                  <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span>
+                </div>
+              </div>
+              <div class="burette-tip"></div>
+              <div style="font-size:11px;color:var(--text-hint);margin-top:4px;" id="burette-vol-lbl">50.0 mL</div>
+            </div>
+            <!-- Erlenmeyer -->
+            <div class="burette-side" style="margin-top:30px;">
+              <div class="burette-label" id="analyte-name-lbl">HCl</div>
+              <svg class="erlen-svg" viewBox="0 0 90 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="30,10 60,10 75,90 15,90" fill="none" stroke="#888" stroke-width="2" stroke-linejoin="round"/>
+                <rect x="35" y="5" width="20" height="8" fill="none" stroke="#888" stroke-width="1.5"/>
+                <polygon id="erlen-liquid" points="38,88 52,88 62,88 28,88" fill="#a8d8ea" opacity="0.7"/>
+                <text id="erlen-color-lbl" x="45" y="103" text-anchor="middle" font-size="9" fill="#888">Tidak berwarna</text>
+              </svg>
+            </div>
+          </div>
+
+          <!-- pH -->
+          <div class="ph-display" style="margin-top:10px;">
+            <div class="ph-value" id="ph-display">7.00</div>
+            <div class="ph-label">pH Real-time</div>
+          </div>
+        </div>
+
+        <!-- Curve -->
+        <div class="card">
+          <div class="card-title">📈 Kurva Titrasi</div>
+          <canvas id="curve-canvas" class="curve-canvas" width="400" height="160"></canvas>
+        </div>
+      </div>
+
+      <!-- RIGHT: controls + info -->
+      <div>
+        <div class="card">
+          <div class="card-title">➕ Tambah Titran</div>
+          <div class="add-row" style="margin-bottom:8px;">
+            <button class="add-btn" onclick="addTitrant(0.1)">+0.1</button>
+            <button class="add-btn" onclick="addTitrant(0.5)">+0.5</button>
+            <button class="add-btn" onclick="addTitrant(1)">+1</button>
+            <button class="add-btn" onclick="addTitrant(2)">+2</button>
+            <button class="add-btn" onclick="addTitrant(5)">+5</button>
+          </div>
+          <div class="custom-add" style="margin-bottom:10px;">
+            <span style="font-size:12px;color:var(--text-sec);">Custom:</span>
+            <input type="number" id="custom-vol" value="1.0" min="0.1" max="10" step="0.1">
+            <span style="font-size:12px;">mL</span>
+            <button class="add-btn" onclick="addTitrantCustom()">+</button>
+          </div>
+          <button class="mark-btn" id="mark-btn" onclick="markEquivalence()" disabled>✓ Tandai Titik Ekuivalen</button>
+          <button class="add-btn" style="width:100%;margin-top:6px;text-align:center;" onclick="resetTitration()">↺ Reset</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">ℹ️ Info Reaksi</div>
+          <div class="titration-info">
+            <div class="info-item"><div class="i-label">Analit</div><div class="i-val" id="info-analyte">-</div></div>
+            <div class="info-item"><div class="i-label">Titran</div><div class="i-val" id="info-titrant">-</div></div>
+            <div class="info-item"><div class="i-label">Vol. analit</div><div class="i-val" id="info-vol-a">25 mL</div></div>
+            <div class="info-item"><div class="i-label">Vol. ditambah</div><div class="i-val" id="info-vol-added">0.0 mL</div></div>
+          </div>
+          <hr class="sep">
+          <div>
+            <div style="font-size:11px;color:var(--text-hint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Indikator Visual</div>
+            <div style="font-size:13px;color:var(--text-sec);">Nama: <strong id="ind-name-lbl">-</strong></div>
+            <div style="font-size:13px;color:var(--text-sec);">Rentang pH: <strong id="ind-range-lbl">-</strong></div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+              <span style="font-size:12px;color:var(--text-hint);">Warna:</span>
+              <div id="ind-color-dot" style="width:18px;height:18px;border-radius:50%;border:1px solid #ccc;background:#ddd;"></div>
+              <span id="ind-color-name" style="font-size:12px;">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📋 Log Titrasi</div>
+          <div class="log-list" id="titration-log">
+            <div class="log-entry"><span>Start</span><span>pH: –</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN: RESULT (per level) ============ -->
+  <div class="screen" id="screen-result">
+    <div class="card">
+      <div class="result-header">
+        <div class="result-icon" id="result-icon">🎉</div>
+        <div class="result-title" id="result-title">Level Selesai!</div>
+        <div class="result-sub" id="result-sub">Kerja bagus!</div>
+      </div>
+
+      <div class="result-stats">
+        <div class="result-stat gold">
+          <div class="rs-val" id="rs-points">0</div>
+          <div class="rs-label">Poin Level Ini</div>
+        </div>
+        <div class="result-stat teal">
+          <div class="rs-val" id="rs-vol-you">0.0</div>
+          <div class="rs-label">Vol. Kamu (mL)</div>
+        </div>
+        <div class="result-stat">
+          <div class="rs-val" id="rs-vol-theory">0.0</div>
+          <div class="rs-label">Vol. Teoritis (mL)</div>
+        </div>
+      </div>
+
+      <div class="score-breakdown" id="score-breakdown"></div>
+
+      <div class="card" style="background:var(--gray-light);">
+        <div class="card-title">🔬 Penjelasan Reaksi</div>
+        <div id="reaction-explanation" style="font-size:13px;color:var(--text-sec);line-height:1.6;"></div>
+      </div>
+
+      <div id="indicator-result" style="font-size:13px;color:var(--text-sec);margin:8px 0;"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="replayLevel()">↺ Ulangi Level Ini</button>
+        <button class="btn btn-primary" id="btn-next-level" onclick="nextLevel()">Level Berikutnya →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ENDING SCREEN ============ -->
+  <div class="screen" id="screen-ending">
+    <canvas class="confetti-canvas" id="confetti-canvas"></canvas>
+
+    <div class="card">
+      <div class="ending-hero">
+        <div class="trophy-ring">🏆</div>
+        <div class="ending-title">Selamat, Kimiawan!</div>
+        <div class="ending-sub">Kamu telah menyelesaikan semua 10 level<br>Lab Titrasi Asam-Basa!</div>
+        <div class="ending-score-big" id="end-total-score">0</div>
+        <div class="ending-score-label">Total Skor</div>
+        <div class="rank-chip" id="end-rank">🥇 Ahli Kimia Analitik</div>
+      </div>
+
+      <div class="ending-grid">
+        <div class="end-stat"><div class="es-val" id="end-levels">10/10</div><div class="es-label">Level Selesai</div></div>
+        <div class="end-stat"><div class="es-val" id="end-accuracy">0%</div><div class="es-label">Akurasi Rata-rata</div></div>
+        <div class="end-stat"><div class="es-val" id="end-perfect">0</div><div class="es-label">Level Sempurna</div></div>
+        <div class="end-stat"><div class="es-val" id="end-hearts">♥♥♥</div><div class="es-label">Sisa Nyawa</div></div>
+      </div>
+
+      <div class="level-recap card" style="background:var(--gray-light);">
+        <div class="card-title">📊 Rekap Per Level</div>
+        <table class="recap-table">
+          <thead>
+            <tr><th>Lvl</th><th>Reaksi</th><th>Vol. Kamu</th><th>Teoritis</th><th>Akurasi</th><th>⭐</th><th>Poin</th></tr>
+          </thead>
+          <tbody id="recap-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="btn-row" style="justify-content:center;margin-top:20px;">
+        <button class="btn btn-primary" onclick="restartGame()" style="padding:12px 32px;font-size:15px;">🔄 Main Lagi</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /game-shell -->
+
+<script>
+// =====================================================================
+// DATA: 10 LEVELS
+// =====================================================================
+const LEVELS = [
+  {
+    id:1, title:"HCl + NaOH",
+    question:"Tentukan volume NaOH 0.1 M yang dibutuhkan untuk mentitrasi 25 mL HCl 0.1 M.",
+    analyte:{name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪", conc:0.1, vol:25, isAcid:true, strong:true},
+    titrant:{name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬", conc:0.1, strong:true},
+    correctAnalyte:"HCl", correctTitrant:"NaOH",
+    equivVol:25.0, equivPH:7.0,
+    indicators:["Fenolftalein","Metil Merah","Bromtimol Biru"],
+    correctIndicator:"Bromtimol Biru",
+    reaction:"HCl + NaOH → NaCl + H₂O\nReaksi asam kuat-basa kuat menghasilkan garam netral (NaCl). Titik ekuivalen pH = 7.",
+    analyteOptions:[
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"NH₄OH", label:"NH₄OH (Basa Lemah)", icon:"💧"},
+    ],
+    titrantOptions:[
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+      {name:"KOH", label:"KOH (Basa Kuat)", icon:"🔮"},
+    ],
+    meta:["Asam Kuat + Basa Kuat","pH titik ekuivalen = 7"],
+  },
+  {
+    id:2, title:"CH₃COOH + NaOH",
+    question:"Titrasikan 25 mL CH₃COOH 0.1 M dengan NaOH 0.1 M. Berapa volume NaOH yang dibutuhkan?",
+    analyte:{name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶", conc:0.1, vol:25, isAcid:true, strong:false},
+    titrant:{name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬", conc:0.1, strong:true},
+    correctAnalyte:"CH₃COOH", correctTitrant:"NaOH",
+    equivVol:25.0, equivPH:8.7,
+    indicators:["Fenolftalein","Metil Merah","Bromtimol Biru"],
+    correctIndicator:"Fenolftalein",
+    reaction:"CH₃COOH + NaOH → CH₃COONa + H₂O\nAsam lemah + basa kuat → garam basa. pH titik ekuivalen > 7 (sekitar 8.7) karena hidrolisis basa garam.",
+    analyteOptions:[
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+    ],
+    titrantOptions:[
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+    ],
+    meta:["Asam Lemah + Basa Kuat","pH titik ekuivalen ≈ 8.7"],
+  },
+  {
+    id:3, title:"NH₃ + HCl",
+    question:"Titrasikan 25 mL NH₃ 0.1 M dengan HCl 0.1 M. Pilih indikator yang tepat!",
+    analyte:{name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨", conc:0.1, vol:25, isAcid:false, strong:false},
+    titrant:{name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪", conc:0.1, strong:true},
+    correctAnalyte:"NH₃", correctTitrant:"HCl",
+    equivVol:25.0, equivPH:5.3,
+    indicators:["Fenolftalein","Metil Merah","Bromtimol Biru","Metil Jingga"],
+    correctIndicator:"Metil Merah",
+    reaction:"NH₃ + HCl → NH₄Cl\nBasa lemah + asam kuat → garam asam. pH titik ekuivalen < 7 (≈ 5.3) karena hidrolisis asam garam NH₄⁺.",
+    analyteOptions:[
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+    ],
+    titrantOptions:[
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+    ],
+    meta:["Basa Lemah + Asam Kuat","pH titik ekuivalen ≈ 5.3"],
+  },
+  {
+    id:4, title:"NaOH + H₂SO₄",
+    question:"Titrasikan 25 mL NaOH 0.2 M dengan H₂SO₄ 0.1 M. Berapa volume H₂SO₄ yang dibutuhkan?",
+    analyte:{name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬", conc:0.2, vol:25, isAcid:false, strong:true},
+    titrant:{name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️", conc:0.1, strong:true},
+    correctAnalyte:"NaOH", correctTitrant:"H₂SO₄",
+    equivVol:25.0, equivPH:7.0,
+    indicators:["Fenolftalein","Metil Merah","Bromtimol Biru"],
+    correctIndicator:"Bromtimol Biru",
+    reaction:"2NaOH + H₂SO₄ → Na₂SO₄ + 2H₂O\nBasa kuat + asam kuat (diprotik). Mol H₂SO₄ = ½ × mol NaOH. Volume = (0.2×25)/(2×0.1) = 25 mL.",
+    analyteOptions:[
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+    ],
+    titrantOptions:[
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+    ],
+    meta:["Basa Kuat + Asam Diprotik","pH titik ekuivalen = 7"],
+  },
+  {
+    id:5, title:"HF + NaOH",
+    question:"Titrasikan 25 mL HF 0.1 M (Ka=6.8×10⁻⁴) dengan NaOH 0.1 M. Tentukan indikator yang tepat!",
+    analyte:{name:"HF", label:"HF (Asam Lemah)", icon:"⚗️", conc:0.1, vol:25, isAcid:true, strong:false},
+    titrant:{name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬", conc:0.1, strong:true},
+    correctAnalyte:"HF", correctTitrant:"NaOH",
+    equivVol:25.0, equivPH:8.1,
+    indicators:["Fenolftalein","Metil Merah","Bromtimol Biru","Timolftalein"],
+    correctIndicator:"Fenolftalein",
+    reaction:"HF + NaOH → NaF + H₂O\nAsam lemah (HF, Ka cukup besar) + basa kuat. Titik ekuivalen pH ≈ 8.1 (basa lemah). Fenolftalein berubah di pH 8.2–10, cocok!",
+    analyteOptions:[
+      {name:"HF", label:"HF (Asam Lemah)", icon:"⚗️"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+    ],
+    titrantOptions:[
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"KOH", label:"KOH (Basa Kuat)", icon:"🔮"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+    ],
+    meta:["Asam Lemah (HF) + Basa Kuat","pH titik ekuivalen ≈ 8.1"],
+  },
+  {
+    id:6, title:"H₂SO₄ + NaOH",
+    question:"Titrasikan 10 mL H₂SO₄ 0.1 M dengan NaOH 0.2 M. Berapa volume NaOH yang dibutuhkan?",
+    analyte:{name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️", conc:0.1, vol:10, isAcid:true, strong:true},
+    titrant:{name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬", conc:0.2, strong:true},
+    correctAnalyte:"H₂SO₄", correctTitrant:"NaOH",
+    equivVol:10.0, equivPH:7.0,
+    indicators:["Bromtimol Biru","Fenolftalein","Metil Merah"],
+    correctIndicator:"Bromtimol Biru",
+    reaction:"H₂SO₄ + 2NaOH → Na₂SO₄ + 2H₂O\nAsam diprotik kuat. Mol NaOH = 2× mol H₂SO₄. Volume = (2×0.1×10)/0.2 = 10 mL.",
+    analyteOptions:[
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"HF", label:"HF (Asam Lemah)", icon:"🔬"},
+    ],
+    titrantOptions:[
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"KOH", label:"KOH (Basa Kuat)", icon:"🔮"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+    ],
+    meta:["Asam Diprotik + Basa Kuat","Mol NaOH = 2 × mol H₂SO₄"],
+  },
+  {
+    id:7, title:"NH₄OH + H₂SO₄",
+    question:"Titrasikan 25 mL NH₄OH 0.1 M dengan H₂SO₄ 0.05 M. Tentukan volume H₂SO₄ dan indikator tepat!",
+    analyte:{name:"NH₄OH", label:"NH₄OH (Basa Lemah)", icon:"💧", conc:0.1, vol:25, isAcid:false, strong:false},
+    titrant:{name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️", conc:0.05, strong:true},
+    correctAnalyte:"NH₄OH", correctTitrant:"H₂SO₄",
+    equivVol:25.0, equivPH:5.3,
+    indicators:["Metil Merah","Fenolftalein","Bromtimol Biru","Metil Jingga"],
+    correctIndicator:"Metil Merah",
+    reaction:"2NH₄OH + H₂SO₄ → (NH₄)₂SO₄ + 2H₂O\nBasa lemah + asam kuat diprotik. Ekuivalen: 2×0.05×V = 0.1×25 → V=25 mL. pH ≈ 5.3.",
+    analyteOptions:[
+      {name:"NH₄OH", label:"NH₄OH (Basa Lemah)", icon:"💧"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+    ],
+    titrantOptions:[
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+    ],
+    meta:["Basa Lemah + Asam Diprotik","pH titik ekuivalen ≈ 5.3"],
+  },
+  {
+    id:8, title:"CH₃COOH + NH₃",
+    question:"Titrasikan 25 mL CH₃COOH 0.1 M dengan NH₃ 0.1 M. Ini adalah titrasi asam-basa lemah!",
+    analyte:{name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶", conc:0.1, vol:25, isAcid:true, strong:false},
+    titrant:{name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨", conc:0.1, strong:false},
+    correctAnalyte:"CH₃COOH", correctTitrant:"NH₃",
+    equivVol:25.0, equivPH:7.0,
+    indicators:["Bromtimol Biru","Fenolftalein","Metil Merah"],
+    correctIndicator:"Bromtimol Biru",
+    reaction:"CH₃COOH + NH₃ → CH₃COONH₄\nAsam lemah + basa lemah. Garam terhidrolisis ganda. pH ≈ 7 karena Ka(CH₃COOH) ≈ Kb(NH₃). Kurva titrasi sangat landai.",
+    analyteOptions:[
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"HF", label:"HF (Asam Lemah)", icon:"⚗️"},
+    ],
+    titrantOptions:[
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"KOH", label:"KOH (Basa Kuat)", icon:"🔮"},
+    ],
+    meta:["Asam Lemah + Basa Lemah","Kurva titrasi landai"],
+  },
+  {
+    id:9, title:"HCl + KOH",
+    question:"Titrasikan 20 mL HCl 0.15 M dengan KOH 0.1 M. Berapa volume KOH yang dibutuhkan?",
+    analyte:{name:"HCl", label:"HCl 0.15 M (Asam Kuat)", icon:"🧪", conc:0.15, vol:20, isAcid:true, strong:true},
+    titrant:{name:"KOH", label:"KOH (Basa Kuat)", icon:"🔮", conc:0.1, strong:true},
+    correctAnalyte:"HCl", correctTitrant:"KOH",
+    equivVol:30.0, equivPH:7.0,
+    indicators:["Bromtimol Biru","Fenolftalein","Metil Merah"],
+    correctIndicator:"Bromtimol Biru",
+    reaction:"HCl + KOH → KCl + H₂O\nVolume KOH = (0.15×20)/0.1 = 30 mL. Reaksi asam kuat-basa kuat, pH titik ekuivalen = 7.",
+    analyteOptions:[
+      {name:"HCl", label:"HCl 0.15 M (Asam Kuat)", icon:"🧪"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Lemah)", icon:"🍶"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+    ],
+    titrantOptions:[
+      {name:"KOH", label:"KOH (Basa Kuat)", icon:"🔮"},
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+    ],
+    meta:["Asam Kuat + Basa Kuat","Volume berbeda (V=30 mL)"],
+  },
+  {
+    id:10, title:"HCOOH + NaOH",
+    question:"Level FINAL: Titrasikan 25 mL HCOOH (asam format) 0.1 M dengan NaOH 0.1 M. Tentukan semua parameter dengan benar!",
+    analyte:{name:"HCOOH", label:"HCOOH (Asam Lemah)", icon:"🍶", conc:0.1, vol:25, isAcid:true, strong:false},
+    titrant:{name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬", conc:0.1, strong:true},
+    correctAnalyte:"HCOOH", correctTitrant:"NaOH",
+    equivVol:25.0, equivPH:8.2,
+    indicators:["Fenolftalein","Metil Merah","Bromtimol Biru","Timolftalein"],
+    correctIndicator:"Fenolftalein",
+    reaction:"HCOOH + NaOH → HCOONa + H₂O\nAsam format (asam lemah, Ka=1.8×10⁻⁴) + basa kuat. Garam HCOONa bersifat basa. pH ekuivalen ≈ 8.2. Fenolftalein (pH 8.2–10) sangat cocok!",
+    analyteOptions:[
+      {name:"HCOOH", label:"HCOOH (Asam Format)", icon:"🍶"},
+      {name:"CH₃COOH", label:"CH₃COOH (Asam Asetat)", icon:"🍶"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"H₂SO₄", label:"H₂SO₄ (Asam Kuat)", icon:"⚗️"},
+    ],
+    titrantOptions:[
+      {name:"NaOH", label:"NaOH (Basa Kuat)", icon:"🔬"},
+      {name:"KOH", label:"KOH (Basa Kuat)", icon:"🔮"},
+      {name:"HCl", label:"HCl (Asam Kuat)", icon:"🧪"},
+      {name:"NH₃", label:"NH₃ (Basa Lemah)", icon:"💨"},
+    ],
+    meta:["Level FINAL","Asam Format + Basa Kuat","pH ≈ 8.2"],
+  },
+];
+
+// Indicator data
+const INDICATORS = {
+  "Fenolftalein":    {range:"8.2 – 10.0", colorAcid:"colorless", colorBase:"pink", phLow:8.2, phHigh:10.0, acidLabel:"Tidak berwarna", baseLabel:"Merah muda"},
+  "Metil Merah":    {range:"4.4 – 6.2",  colorAcid:"#E24B4A",   colorBase:"#f5c518", phLow:4.4, phHigh:6.2, acidLabel:"Merah", baseLabel:"Kuning"},
+  "Bromtimol Biru": {range:"6.0 – 7.6",  colorAcid:"#f5c518",   colorBase:"#185FA5", phLow:6.0, phHigh:7.6, acidLabel:"Kuning", baseLabel:"Biru"},
+  "Metil Jingga":   {range:"3.1 – 4.4",  colorAcid:"#E24B4A",   colorBase:"#f5c518", phLow:3.1, phHigh:4.4, acidLabel:"Merah", baseLabel:"Kuning-jingga"},
+  "Timolftalein":   {range:"9.3 – 10.5", colorAcid:"colorless",  colorBase:"#185FA5", phLow:9.3, phHigh:10.5,acidLabel:"Tidak berwarna", baseLabel:"Biru"},
+};
+
+// =====================================================================
+// GAME STATE
+// =====================================================================
+let gs = {
+  currentLevel: 0,
+  step: 0, // 0=analyte,1=titrant,2=indicator,3=titration,4=result
+  score: 0,
+  hearts: 3,
+  selectedAnalyte: null,
+  selectedTitrant: null,
+  selectedIndicator: null,
+  analyteCorrect: false,
+  titrantCorrect: false,
+  indicatorCorrect: false,
+  analyteAttempts: 0,
+  titrantAttempts: 0,
+  indicatorAttempts: 0,
+  volAdded: 0,
+  equivalenceMarked: false,
+  equivalenceVol: 0,
+  titrationLog: [],
+  pHHistory: [],
+  levelResults: [],
+};
+
+// =====================================================================
+// SCORING SYSTEM
+// =====================================================================
+function calcScore(level, volAdded, analyteCorrect, titrantCorrect, indicatorCorrect, analyteAttempts, titrantAttempts, indicatorAttempts) {
+  const lv = LEVELS[level];
+  const breakdown = [];
+  let total = 0;
+
+  // 1. Base score for completion
+  const base = 100;
+  breakdown.push({label:"Skor dasar penyelesaian", pts: base, type:"base"});
+  total += base;
+
+  // 2. Accuracy of equivalence point
+  const error = Math.abs(volAdded - lv.equivVol);
+  const errorPct = (error / lv.equivVol) * 100;
+  let accuracyPts = 0;
+  if (errorPct <= 1) { accuracyPts = 80; }
+  else if (errorPct <= 3) { accuracyPts = 60; }
+  else if (errorPct <= 5) { accuracyPts = 40; }
+  else if (errorPct <= 10) { accuracyPts = 20; }
+  breakdown.push({label:`Akurasi titrasi (error ${errorPct.toFixed(1)}%)`, pts: accuracyPts, type:"base"});
+  total += accuracyPts;
+
+  // 3. Analyte selection
+  const analytePts = analyteCorrect ? Math.max(30 - (analyteAttempts - 1) * 10, 0) : 0;
+  if (analytePts > 0) breakdown.push({label:`Pilih analit benar (${analyteAttempts}× percobaan)`, pts: analytePts, type:"bonus"});
+  total += analytePts;
+
+  // 4. Titrant selection
+  const titrantPts = titrantCorrect ? Math.max(30 - (titrantAttempts - 1) * 10, 0) : 0;
+  if (titrantPts > 0) breakdown.push({label:`Pilih titran benar (${titrantAttempts}× percobaan)`, pts: titrantPts, type:"bonus"});
+  total += titrantPts;
+
+  // 5. Indicator selection
+  const indicatorPts = indicatorCorrect ? Math.max(40 - (indicatorAttempts - 1) * 15, 0) : 0;
+  if (indicatorPts > 0) breakdown.push({label:`Pilih indikator benar (${indicatorAttempts}× percobaan)`, pts: indicatorPts, type:"bonus"});
+  total += indicatorPts;
+
+  // 6. Level bonus (harder levels worth more)
+  const levelBonus = (level + 1) * 5;
+  breakdown.push({label:`Bonus level ${level + 1}`, pts: levelBonus, type:"bonus"});
+  total += levelBonus;
+
+  // 7. Penalty for wrong attempts
+  const wrongPenalty = ((analyteAttempts - 1) + (titrantAttempts - 1) + (indicatorAttempts - 1)) * 5;
+  if (wrongPenalty > 0) {
+    breakdown.push({label:`Penalti salah pilih (${(analyteAttempts + titrantAttempts + indicatorAttempts - 3)}× salah)`, pts: -wrongPenalty, type:"penalty"});
+    total -= wrongPenalty;
+  }
+
+  total = Math.max(0, total);
+  breakdown.push({label:"Total Poin Level Ini", pts: total, type:"total"});
+
+  // Stars (1–3)
+  const maxPossible = 100 + 80 + 30 + 30 + 40 + (level + 1) * 5;
+  const ratio = total / maxPossible;
+  const stars = ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1;
+  const accuracy = Math.max(0, 100 - errorPct).toFixed(0);
+
+  return { total, breakdown, stars, accuracy: Number(accuracy) };
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+function initLevel() {
+  const lv = LEVELS[gs.currentLevel];
+  gs.selectedAnalyte = null;
+  gs.selectedTitrant = null;
+  gs.selectedIndicator = null;
+  gs.analyteCorrect = false;
+  gs.titrantCorrect = false;
+  gs.indicatorCorrect = false;
+  gs.analyteAttempts = 0;
+  gs.titrantAttempts = 0;
+  gs.indicatorAttempts = 0;
+  gs.volAdded = 0;
+  gs.equivalenceMarked = false;
+  gs.equivalenceVol = 0;
+  gs.titrationLog = [];
+  gs.pHHistory = [];
+
+  updateHeader();
+  goToStep(0);
+  renderQuestion(lv);
+  renderAnalyteOptions(lv);
+  renderTitrantOptions(lv);
+  renderIndicatorOptions(lv);
+  resetTitrationUI(lv);
+}
+
+function updateHeader() {
+  document.getElementById('hdr-score').textContent = gs.score;
+  document.getElementById('hdr-level').textContent = gs.currentLevel + 1;
+  document.getElementById('hdr-hearts').textContent = '♥'.repeat(gs.hearts) + '♡'.repeat(Math.max(0, 3 - gs.hearts));
+}
+
+function renderQuestion(lv) {
+  ['q-num','q-num2'].forEach(id => document.getElementById(id).textContent = gs.currentLevel + 1);
+  ['q-text','q-text2'].forEach(id => document.getElementById(id).textContent = lv.question);
+  const meta = document.getElementById('q-meta');
+  meta.innerHTML = lv.meta.map(m => `<span class="q-badge">${m}</span>`).join('');
+}
+
+function renderAnalyteOptions(lv) {
+  const grid = document.getElementById('analyte-options');
+  grid.innerHTML = '';
+  document.getElementById('feedback-analyte').className = 'feedback';
+  document.getElementById('btn-next-analyte').disabled = true;
+  lv.analyteOptions.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-icon">${opt.icon}</span><span>${opt.label}</span>`;
+    btn.onclick = () => selectAnalyte(opt.name, btn, lv);
+    grid.appendChild(btn);
+  });
+}
+
+function renderTitrantOptions(lv) {
+  const grid = document.getElementById('titrant-options');
+  grid.innerHTML = '';
+  document.getElementById('feedback-titrant').className = 'feedback';
+  document.getElementById('btn-next-titrant').disabled = true;
+  lv.titrantOptions.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-icon">${opt.icon}</span><span>${opt.label}</span>`;
+    btn.onclick = () => selectTitrant(opt.name, btn, lv);
+    grid.appendChild(btn);
+  });
+}
+
+function renderIndicatorOptions(lv) {
+  const wrap = document.getElementById('indicator-options');
+  wrap.innerHTML = '';
+  document.getElementById('feedback-indicator').className = 'feedback';
+  document.getElementById('btn-next-indicator').disabled = true;
+  document.getElementById('indicator-info').style.display = 'none';
+  lv.indicators.forEach(name => {
+    const ind = INDICATORS[name];
+    const pill = document.createElement('button');
+    pill.className = 'indicator-pill';
+    const dot = ind.colorAcid === 'colorless' ? '#ddd' : ind.colorAcid;
+    pill.innerHTML = `<div class="ind-dot" style="background:${dot}"></div><span>${name}</span><span style="font-size:11px;color:var(--text-hint);">(pH ${ind.range})</span>`;
+    pill.onclick = () => selectIndicator(name, pill, lv);
+    wrap.appendChild(pill);
+  });
+}
+
+function resetTitrationUI(lv) {
+  document.getElementById('titrant-name-lbl').textContent = lv.titrant.name;
+  document.getElementById('analyte-name-lbl').textContent = lv.analyte.name;
+  document.getElementById('info-analyte').textContent = lv.analyte.name;
+  document.getElementById('info-titrant').textContent = lv.titrant.name;
+  document.getElementById('info-vol-a').textContent = lv.analyte.vol + ' mL';
+  document.getElementById('info-vol-added').textContent = '0.0 mL';
+
+  const sel = lv.selectedIndicatorObj || INDICATORS[lv.correctIndicator];
+  document.getElementById('ind-name-lbl').textContent = lv.correctIndicator;
+  document.getElementById('ind-range-lbl').textContent = (INDICATORS[lv.correctIndicator]||{}).range || '-';
+
+  updateBuret(50, 50);
+  updateErlenmeyer(lv, 0);
+  updatePHDisplay(lv.analyte.isAcid ? calcInitialPH(lv) : calcInitialPHBase(lv));
+  document.getElementById('titration-log').innerHTML = `<div class="log-entry"><span>Start</span><span>pH: ${lv.analyte.isAcid ? calcInitialPH(lv).toFixed(2) : calcInitialPHBase(lv).toFixed(2)}</span></div>`;
+  document.getElementById('mark-btn').disabled = false;
+  drawCurve([]);
+  updateIndicatorDisplay(lv, lv.analyte.isAcid ? calcInitialPH(lv) : calcInitialPHBase(lv));
+}
+
+// =====================================================================
+// SELECTIONS
+// =====================================================================
+function selectAnalyte(name, btn, lv) {
+  if (gs.analyteCorrect) return;
+  gs.analyteAttempts++;
+  const allBtns = document.getElementById('analyte-options').querySelectorAll('.option-btn');
+  const fb = document.getElementById('feedback-analyte');
+
+  if (name === lv.correctAnalyte) {
+    gs.selectedAnalyte = name;
+    gs.analyteCorrect = true;
+    btn.classList.add('correct');
+    allBtns.forEach(b => { if (b !== btn) b.classList.add('disabled'); });
+    fb.className = 'feedback correct show';
+    fb.innerHTML = `✅ Benar! <strong>${name}</strong> adalah analit yang tepat untuk soal ini.`;
+    document.getElementById('btn-next-analyte').disabled = false;
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(() => btn.classList.remove('wrong'), 800);
+    if (gs.hearts > 0 && gs.analyteAttempts > 1) gs.hearts = Math.max(0, gs.hearts - 1);
+    updateHeader();
+    fb.className = 'feedback wrong show';
+    fb.innerHTML = `❌ Kurang tepat. Perhatikan kembali jenis larutan dalam soal.`;
+  }
+}
+
+function selectTitrant(name, btn, lv) {
+  if (gs.titrantCorrect) return;
+  gs.titrantAttempts++;
+  const allBtns = document.getElementById('titrant-options').querySelectorAll('.option-btn');
+  const fb = document.getElementById('feedback-titrant');
+
+  if (name === lv.correctTitrant) {
+    gs.selectedTitrant = name;
+    gs.titrantCorrect = true;
+    btn.classList.add('correct');
+    allBtns.forEach(b => { if (b !== btn) b.classList.add('disabled'); });
+    fb.className = 'feedback correct show';
+    fb.innerHTML = `✅ Benar! <strong>${name}</strong> adalah titran yang tepat.`;
+    document.getElementById('btn-next-titrant').disabled = false;
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(() => btn.classList.remove('wrong'), 800);
+    if (gs.hearts > 0 && gs.titrantAttempts > 1) gs.hearts = Math.max(0, gs.hearts - 1);
+    updateHeader();
+    fb.className = 'feedback wrong show';
+    fb.innerHTML = `❌ Kurang tepat. Titran harus bereaksi dengan analit.`;
+  }
+}
+
+function selectIndicator(name, pill, lv) {
+  if (gs.indicatorCorrect) return;
+  gs.indicatorAttempts++;
+  const allPills = document.getElementById('indicator-options').querySelectorAll('.indicator-pill');
+  const fb = document.getElementById('feedback-indicator');
+  const info = document.getElementById('indicator-info');
+  const ind = INDICATORS[name];
+
+  allPills.forEach(p => p.classList.remove('selected'));
+  pill.classList.add('selected');
+
+  if (name === lv.correctIndicator) {
+    gs.selectedIndicator = name;
+    gs.indicatorCorrect = true;
+    fb.className = 'feedback correct show';
+    fb.innerHTML = `✅ Tepat! <strong>${name}</strong> (pH ${ind.range}) sesuai dengan titik ekuivalen pH ≈ ${lv.equivPH}.`;
+    info.style.display = 'block';
+    info.innerHTML = `💡 <strong>${name}</strong> berubah warna dari "${ind.acidLabel}" → "${ind.baseLabel}" di pH ${ind.range}. Titik ekuivalen reaksi ini pH ${lv.equivPH} jatuh tepat di rentang tersebut.`;
+    document.getElementById('btn-next-indicator').disabled = false;
+  } else {
+    if (gs.hearts > 0 && gs.indicatorAttempts > 1) gs.hearts = Math.max(0, gs.hearts - 1);
+    updateHeader();
+    fb.className = 'feedback wrong show';
+    const hint = lv.equivPH < 7 ? 'Titik ekuivalen bersifat asam (pH < 7), pilih indikator yang berubah di pH rendah.'
+                : lv.equivPH > 7 ? 'Titik ekuivalen bersifat basa (pH > 7), pilih indikator yang berubah di pH tinggi.'
+                : 'Titik ekuivalen netral (pH = 7), pilih indikator yang berubah di sekitar pH 7.';
+    fb.innerHTML = `❌ Rentang pH ${name} (${ind.range}) tidak cocok. ${hint}`;
+  }
+}
+
+// =====================================================================
+// STEP NAVIGATION
+// =====================================================================
+function goToStep(step) {
+  gs.step = step;
+  const screens = ['screen-analyte','screen-titrant','screen-indicator','screen-titration','screen-result'];
+  screens.forEach((id, i) => {
+    document.getElementById(id).className = 'screen' + (i === step ? ' active' : '');
+  });
+  document.getElementById('screen-ending').className = 'screen';
+
+  for (let i = 0; i < 5; i++) {
+    const ps = document.getElementById('ps-' + i);
+    const sl = document.getElementById('sl-' + i);
+    if (i < step) { ps.className = 'prog-step done'; sl.className = 'step-label done'; }
+    else if (i === step) { ps.className = 'prog-step active'; sl.className = 'step-label active'; }
+    else { ps.className = 'prog-step'; sl.className = 'step-label'; }
+  }
+
+  if (step === 3) {
+    const lv = LEVELS[gs.currentLevel];
+    resetTitrationUI(lv);
+    gs.volAdded = 0;
+    gs.pHHistory = [];
+    gs.titrationLog = [];
+  }
+}
+
+// =====================================================================
+// pH CALCULATION
+// =====================================================================
+function calcInitialPH(lv) {
+  if (lv.analyte.strong) return -Math.log10(lv.analyte.conc);
+  // Weak acid: pH = 0.5*(pKa - log C), using Ka approx
+  const Ka = lv.analyte.name === 'HF' ? 6.8e-4 : lv.analyte.name === 'HCOOH' ? 1.8e-4 : 1.8e-5;
+  return 0.5 * (-Math.log10(Ka) - Math.log10(lv.analyte.conc));
+}
+function calcInitialPHBase(lv) {
+  if (lv.analyte.strong) return 14 + Math.log10(lv.analyte.conc);
+  const Kb = 1.8e-5;
+  const pOH = 0.5 * (-Math.log10(Kb) - Math.log10(lv.analyte.conc));
+  return 14 - pOH;
+}
+
+function calcPH(lv, volAdded) {
+  const Va = lv.analyte.vol;
+  const Ca = lv.analyte.conc;
+  const Ct = lv.titrant.conc;
+  const Ve = lv.equivVol;
+  const isAcid = lv.analyte.isAcid;
+
+  const molesA = Ca * Va;
+  const molesT = Ct * volAdded;
+  const totalVol = Va + volAdded;
+
+  if (volAdded === 0) return isAcid ? calcInitialPH(lv) : calcInitialPHBase(lv);
+
+  const diff = molesA - molesT;
+  const ratio = volAdded / Ve;
+
+  if (Math.abs(diff) < 0.001 * molesA) {
+    return lv.equivPH; // at equivalence
+  }
+
+  if (isAcid) {
+    if (volAdded < Ve) {
+      // Before equivalence
+      if (lv.analyte.strong) {
+        const cH = diff / totalVol;
+        return -Math.log10(Math.max(1e-14, cH));
+      } else {
+        // Buffer region (Henderson-Hasselbalch)
+        const Ka = lv.analyte.name === 'HF' ? 6.8e-4 : lv.analyte.name === 'HCOOH' ? 1.8e-4 : 1.8e-5;
+        const pKa = -Math.log10(Ka);
+        const molesAcid = diff;
+        const molesSalt = molesT;
+        if (molesSalt <= 0) return calcInitialPH(lv);
+        return pKa + Math.log10(molesSalt / molesAcid);
+      }
+    } else {
+      // After equivalence - excess base
+      const excessBase = (molesT - molesA) / totalVol;
+      const pOH = -Math.log10(Math.max(1e-14, excessBase));
+      return Math.min(14, 14 - pOH);
+    }
+  } else {
+    // Analyte is base
+    if (volAdded < Ve) {
+      if (lv.analyte.strong) {
+        const cOH = diff / totalVol;
+        const pOH = -Math.log10(Math.max(1e-14, cOH));
+        return 14 - pOH;
+      } else {
+        const Kb = 1.8e-5; const pKb = -Math.log10(Kb);
+        const molesBase = diff; const molesSalt = molesT;
+        if (molesSalt <= 0) return calcInitialPHBase(lv);
+        return 14 - pKb - Math.log10(molesSalt / molesBase);
+      }
+    } else {
+      const excessAcid = (molesT - molesA) / totalVol;
+      return -Math.log10(Math.max(1e-14, excessAcid));
+    }
+  }
+}
+
+// =====================================================================
+// TITRATION ACTIONS
+// =====================================================================
+function addTitrant(vol) {
+  const lv = LEVELS[gs.currentLevel];
+  const maxVol = lv.equivVol * 2.5;
+  if (gs.volAdded >= maxVol) return;
+
+  gs.volAdded = Math.min(gs.volAdded + vol, maxVol);
+  const ph = calcPH(lv, gs.volAdded);
+  gs.pHHistory.push({ v: gs.volAdded, ph });
+
+  gs.titrationLog.push({ vol: gs.volAdded.toFixed(1), ph: ph.toFixed(2) });
+  if (gs.titrationLog.length > 50) gs.titrationLog.shift();
+
+  updateTitrationUI(lv, ph);
+  updateBuret(50 - gs.volAdded, 50);
+  updateErlenmeyer(lv, ph);
+  updateIndicatorDisplay(lv, ph);
+  drawCurve(gs.pHHistory);
+
+  // Log
+  const log = document.getElementById('titration-log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span>+${vol} mL (${gs.volAdded.toFixed(1)} mL)</span><span>pH ${ph.toFixed(2)}</span>`;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+function addTitrantCustom() {
+  const v = parseFloat(document.getElementById('custom-vol').value) || 1;
+  addTitrant(Math.min(Math.max(0.1, v), 20));
+}
+
+function updateTitrationUI(lv, ph) {
+  document.getElementById('ph-display').textContent = ph.toFixed(2);
+  document.getElementById('info-vol-added').textContent = gs.volAdded.toFixed(1) + ' mL';
+  updatePHDisplay(ph);
+}
+
+function updatePHDisplay(ph) {
+  const el = document.getElementById('ph-display');
+  el.textContent = ph.toFixed(2);
+  const pct = ph / 14;
+  const r = Math.round(pct * 220);
+  const g = Math.round((1 - Math.abs(pct - 0.5) * 2) * 180);
+  const b = Math.round((1 - pct) * 220);
+  el.style.color = `rgb(${r},${g},${b})`;
+}
+
+function updateBuret(remaining, total) {
+  const pct = Math.max(0, remaining / total) * 100;
+  document.getElementById('burette-fill').style.height = pct + '%';
+  document.getElementById('burette-vol-lbl').textContent = Math.max(0, remaining).toFixed(1) + ' mL';
+}
+
+function updateErlenmeyer(lv, ph) {
+  const poly = document.getElementById('erlen-liquid');
+  const lbl = document.getElementById('erlen-color-lbl');
+  const ind = INDICATORS[lv.selectedIndicator || lv.correctIndicator];
+  let color = '#a8d8ea'; let colorLabel = 'Tidak berwarna';
+
+  if (ind) {
+    if (ph < ind.phLow) {
+      color = ind.colorAcid === 'colorless' ? '#e8e8e8' : ind.colorAcid;
+      colorLabel = ind.acidLabel;
+    } else if (ph > ind.phHigh) {
+      color = ind.colorBase;
+      colorLabel = ind.baseLabel;
+    } else {
+      // transition color (mix)
+      const ratio = (ph - ind.phLow) / (ind.phHigh - ind.phLow);
+      color = ind.colorAcid === 'colorless' ? `rgba(200,230,220,${ratio})` : ind.colorBase;
+      colorLabel = 'Transisi...';
+    }
+  }
+  const volumePct = Math.min(1, 0.3 + gs.volAdded / (lv.equivVol * 2) * 0.5);
+  const y = 88 - volumePct * 55;
+  poly.setAttribute('points', `28,88 62,88 ${60 - (62 - 28) * 0.1},${y + 5} ${30 + (62 - 28) * 0.1},${y + 5}`);
+  poly.setAttribute('fill', color);
+  if (lbl) lbl.textContent = colorLabel;
+}
+
+function updateIndicatorDisplay(lv, ph) {
+  const indName = lv.selectedIndicator || lv.correctIndicator;
+  const ind = INDICATORS[indName];
+  if (!ind) return;
+  let color = ind.colorAcid === 'colorless' ? '#ddd' : ind.colorAcid;
+  let colorLabel = ind.acidLabel;
+  if (ph > ind.phHigh) { color = ind.colorBase; colorLabel = ind.baseLabel; }
+  else if (ph >= ind.phLow) { colorLabel = 'Transisi'; }
+  document.getElementById('ind-color-dot').style.background = color;
+  document.getElementById('ind-color-name').textContent = colorLabel;
+}
+
+function markEquivalence() {
+  const lv = LEVELS[gs.currentLevel];
+  gs.equivalenceMarked = true;
+  gs.equivalenceVol = gs.volAdded;
+  document.getElementById('mark-btn').disabled = true;
+  document.getElementById('mark-btn').textContent = `✓ Ditandai @ ${gs.volAdded.toFixed(1)} mL`;
+
+  // Show result after short delay
+  setTimeout(() => showResult(lv), 500);
+}
+
+function resetTitration() {
+  const lv = LEVELS[gs.currentLevel];
+  gs.volAdded = 0;
+  gs.pHHistory = [];
+  gs.titrationLog = [];
+  gs.equivalenceMarked = false;
+  resetTitrationUI(lv);
+  document.getElementById('mark-btn').disabled = false;
+  document.getElementById('mark-btn').textContent = '✓ Tandai Titik Ekuivalen';
+}
+
+// =====================================================================
+// CURVE DRAWING
+// =====================================================================
+function drawCurve(history) {
+  const canvas = document.getElementById('curve-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 400; const H = 160;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  const lv = LEVELS[gs.currentLevel];
+  const maxVol = lv.equivVol * 2.2;
+  const pad = { l: 36, r: 14, t: 10, b: 28 };
+  const pw = W - pad.l - pad.r; const ph = H - pad.t - pad.b;
+
+  // Grid
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 14; i += 2) {
+    const y = pad.t + ph - (i / 14) * ph;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+  }
+  // Axes
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H - pad.b); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l, H - pad.b); ctx.lineTo(W - pad.r, H - pad.b); ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#888'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 14; i += 2) {
+    const y = pad.t + ph - (i / 14) * ph;
+    ctx.fillText(i, pad.l - 4, y + 3);
+  }
+  ctx.textAlign = 'center';
+  const volSteps = [0, maxVol * 0.5, maxVol];
+  volSteps.forEach(v => {
+    const x = pad.l + (v / maxVol) * pw;
+    ctx.fillText(v.toFixed(0), x, H - 2);
+  });
+
+  // Equivalence vertical line
+  const ex = pad.l + (lv.equivVol / maxVol) * pw;
+  ctx.setLineDash([4, 3]); ctx.strokeStyle = '#E24B4A'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ex, pad.t); ctx.lineTo(ex, H - pad.b); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // pH = 7 horizontal
+  const ey = pad.t + ph - (7 / 14) * ph;
+  ctx.setLineDash([3, 3]); ctx.strokeStyle = '#185FA5'; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(pad.l, ey); ctx.lineTo(W - pad.r, ey); ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (history.length < 2) return;
+
+  // Curve
+  ctx.strokeStyle = '#1D9E75'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  history.forEach((pt, i) => {
+    const x = pad.l + (pt.v / maxVol) * pw;
+    const y = pad.t + ph - (Math.min(14, Math.max(0, pt.ph)) / 14) * ph;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Marked point
+  if (gs.equivalenceMarked) {
+    const mx = pad.l + (gs.equivalenceVol / maxVol) * pw;
+    const mPH = calcPH(lv, gs.equivalenceVol);
+    const my = pad.t + ph - (Math.min(14, Math.max(0, mPH)) / 14) * ph;
+    ctx.fillStyle = '#E24B4A';
+    ctx.beginPath(); ctx.arc(mx, my, 5, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// =====================================================================
+// RESULT
+// =====================================================================
+function showResult(lv) {
+  const scored = calcScore(
+    gs.currentLevel, gs.equivalenceVol,
+    gs.analyteCorrect, gs.titrantCorrect, gs.indicatorCorrect,
+    gs.analyteAttempts || 1, gs.titrantAttempts || 1, gs.indicatorAttempts || 1
+  );
+
+  gs.score += scored.total;
+  gs.levelResults.push({
+    level: gs.currentLevel + 1,
+    title: lv.title,
+    volYou: gs.equivalenceVol.toFixed(1),
+    volTheory: lv.equivVol.toFixed(1),
+    accuracy: scored.accuracy,
+    stars: scored.stars,
+    points: scored.total,
+  });
+
+  updateHeader();
+
+  // Icons & titles
+  const isGood = scored.stars >= 2;
+  document.getElementById('result-icon').textContent = scored.stars === 3 ? '🏆' : scored.stars === 2 ? '🎉' : '😅';
+  document.getElementById('result-title').textContent = scored.stars === 3 ? 'Sempurna!' : scored.stars === 2 ? 'Bagus!' : 'Level Selesai';
+  const errPct = Math.abs(gs.equivalenceVol - lv.equivVol) / lv.equivVol * 100;
+  document.getElementById('result-sub').textContent = errPct < 2
+    ? `Akurasi luar biasa! Error hanya ${errPct.toFixed(1)}%.`
+    : `Volume teoritis: ${lv.equivVol} mL. Volume kamu: ${gs.equivalenceVol.toFixed(1)} mL (error ${errPct.toFixed(1)}%).`;
+
+  document.getElementById('rs-points').textContent = scored.total;
+  document.getElementById('rs-vol-you').textContent = gs.equivalenceVol.toFixed(1);
+  document.getElementById('rs-vol-theory').textContent = lv.equivVol.toFixed(1);
+
+  // Breakdown
+  const bd = document.getElementById('score-breakdown');
+  bd.innerHTML = scored.breakdown.map(b =>
+    `<div class="breakdown-row ${b.type}"><span class="bd-label">${b.label}</span><span class="bd-pts">${b.pts > 0 ? '+' : ''}${b.pts} pts</span></div>`
+  ).join('');
+
+  document.getElementById('reaction-explanation').textContent = lv.reaction;
+
+  const indInfo = INDICATORS[lv.correctIndicator];
+  document.getElementById('indicator-result').innerHTML =
+    `🔬 <strong>Indikator yang tepat:</strong> ${lv.correctIndicator} (pH ${indInfo.range}) — ${gs.indicatorCorrect ? '✅ Kamu memilihnya dengan benar!' : `❌ Kamu memilih ${gs.selectedIndicator || '-'}`}`;
+
+  const isLast = gs.currentLevel === LEVELS.length - 1;
+  const nextBtn = document.getElementById('btn-next-level');
+  nextBtn.textContent = isLast ? '🏁 Lihat Hasil Akhir →' : 'Level Berikutnya →';
+
+  goToStep(4);
+}
+
+function nextLevel() {
+  if (gs.currentLevel === LEVELS.length - 1) {
+    showEnding();
+  } else {
+    gs.currentLevel++;
+    initLevel();
+  }
+}
+
+function replayLevel() {
+  // Remove last result
+  gs.levelResults.pop();
+  gs.score -= gs.levelResults.reduce((a, b) => a, 0); // recount
+  // simpler: just subtract last added score
+  const lastResult = gs.levelResults[gs.levelResults.length] || { points: 0 };
+  initLevel();
+}
+
+// =====================================================================
+// ENDING SCREEN
+// =====================================================================
+function showEnding() {
+  // Hide all normal screens
+  ['screen-analyte','screen-titrant','screen-indicator','screen-titration','screen-result'].forEach(id => {
+    document.getElementById(id).className = 'screen';
+  });
+  document.getElementById('step-progress').style.display = 'none';
+  document.getElementById('screen-ending').className = 'screen active';
+
+  // Totals
+  const totalScore = gs.levelResults.reduce((s, r) => s + r.points, 0);
+  const avgAccuracy = Math.round(gs.levelResults.reduce((s, r) => s + r.accuracy, 0) / gs.levelResults.length);
+  const perfectLevels = gs.levelResults.filter(r => r.stars === 3).length;
+
+  // Rank
+  let rank = '🔬 Pelajar Kimia';
+  if (totalScore >= 2500) rank = '🏆 Profesor Analitik';
+  else if (totalScore >= 2000) rank = '🥇 Ahli Kimia Analitik';
+  else if (totalScore >= 1500) rank = '🥈 Kimiawan Terampil';
+  else if (totalScore >= 1000) rank = '🥉 Analis Pemula';
+
+  // Animate score
+  animateNumber('end-total-score', 0, totalScore, 1200);
+  document.getElementById('end-accuracy').textContent = avgAccuracy + '%';
+  document.getElementById('end-perfect').textContent = perfectLevels;
+  document.getElementById('end-hearts').textContent = '♥'.repeat(gs.hearts) + '♡'.repeat(Math.max(0, 3 - gs.hearts));
+  document.getElementById('end-rank').textContent = rank;
+
+  // Recap table
+  const tbody = document.getElementById('recap-tbody');
+  tbody.innerHTML = gs.levelResults.map(r => {
+    const stars = '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars);
+    const accColor = r.accuracy >= 90 ? 'var(--teal)' : r.accuracy >= 70 ? 'var(--amber)' : 'var(--red)';
+    return `<tr>
+      <td><strong>${r.level}</strong></td>
+      <td style="font-size:12px;">${r.title}</td>
+      <td>${r.volYou} mL</td>
+      <td>${r.volTheory} mL</td>
+      <td style="color:${accColor};font-weight:600;">${r.accuracy}%</td>
+      <td class="stars-cell">${stars}</td>
+      <td class="pts-cell">${r.points}</td>
+    </tr>`;
+  }).join('');
+
+  // Confetti
+  launchConfetti();
+}
+
+function animateNumber(id, from, to, duration) {
+  const el = document.getElementById(id);
+  const start = Date.now();
+  function tick() {
+    const elapsed = Date.now() - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(from + (to - from) * eased);
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+// =====================================================================
+// CONFETTI
+// =====================================================================
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const pieces = [];
+  const colors = ['#1D9E75','#5DCAA5','#BA7517','#EF9F27','#185FA5','#E24B4A','#9F77DD'];
+
+  for (let i = 0; i < 120; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: -10 - Math.random() * 200,
+      w: 6 + Math.random() * 8, h: 4 + Math.random() * 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 3,
+      vy: 2 + Math.random() * 4,
+      rot: Math.random() * 360, vr: (Math.random() - 0.5) * 8,
+      alpha: 1,
+    });
+  }
+
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      if (frame > 90) p.alpha -= 0.01;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 160) requestAnimationFrame(animate);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  animate();
+}
+
+function restartGame() {
+  gs = {
+    currentLevel: 0, step: 0, score: 0, hearts: 3,
+    selectedAnalyte: null, selectedTitrant: null, selectedIndicator: null,
+    analyteCorrect: false, titrantCorrect: false, indicatorCorrect: false,
+    analyteAttempts: 0, titrantAttempts: 0, indicatorAttempts: 0,
+    volAdded: 0, equivalenceMarked: false, equivalenceVol: 0,
+    titrationLog: [], pHHistory: [], levelResults: [],
+  };
+  document.getElementById('step-progress').style.display = '';
+  document.getElementById('screen-ending').className = 'screen';
+  initLevel();
+}
+
+// =====================================================================
+// START
+// =====================================================================
+initLevel();
+</script>
+</body>
+</html>
